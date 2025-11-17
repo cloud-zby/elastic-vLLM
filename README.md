@@ -147,4 +147,6 @@ branch speculation principles，提前主动启动异步内存分配
 当触发了取消映射10个slots的事件时，系统不需要立即取消插槽的映射，然后重新分配其关联的物理块
 通过利用GPU VMM将单个物理块映射到多个虚拟地址的能力，物理块可以一边分配给一个新的tensor slots，同时异步执行原始slots的取消映射
 
+由于[eLLM: Elastic Memory Management Framework for Efficient LLM Serving](https://arxiv.org/abs/2506.15155)没有开源代码，所以这里只是尝试复现这篇工作的内容，并尽量地解耦合以便拓展到其他框架（暂未实现）
+
 ---
