@@ -15,7 +15,9 @@ Easy, fast, and cheap LLM serving for everyone
 </p>
 
 ---
-
+# elastic-vLLM
+- 查看PPT以深入暸解eLLM的细节：[eLLM-PPT](/eLLM.pptx)     
+- 为了实现eLLM，需对vLLM侵入式的修改，查看PPT以深入暸解vLLM的整体实现架构和实现细节：[vLLM-PPT](/vLLM.pptx)   
 ## Introduction
 - LLM的内存占用很大
 - LLM推理在内存分配不规则的情况下表现出显着的动态行为（基于最大请求长度的静态预分配导致严重的碎片；vLLM引入PagedAttention解决动态KVCache挑战，但其应用仅限于KVCache，同时隔离激活内存分配）
