@@ -1,8 +1,12 @@
 import torch
-from vllm.v1.eTensor.activation_block import (
+from activation_block import (
     ActivationBlockPool,
     StaticActivationBlockPool,
 )
+# from vllm.v1.eTensor.activation_block import (
+#     ActivationBlockPool,
+#     StaticActivationBlockPool,
+# )
 
 
 def test_activation_block_pool():
@@ -118,7 +122,7 @@ def test_static_activation_block_pool():
     def print_result(name, cond):
         print(f"{name}: {'√' if cond else '×'}")
 
-    print("\n[ActivationBlockPool 功能测试]")
+    print("\n[StaticActivationBlockPool 功能测试]")
     block_size = 16
     total_size = 64  # 4 blocks
     StaticActivationBlockPool.init_pool(
@@ -227,3 +231,4 @@ def test_static_activation_block_pool():
 
 if __name__ == "__main__":
     test_activation_block_pool()
+    test_static_activation_block_pool()
