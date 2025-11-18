@@ -2,6 +2,7 @@ import torch
 import logging
 import time
 
+
 class DataLocation:
     def __init__(
         self, block_ids: list[int], block_size: int, used_block_lens: list[int]
@@ -35,6 +36,8 @@ class ActivationBlockCache:
 
 
 class ActivationBlockPool:
+    _logger = logging.getLogger("ActivationBlockPool")
+
     def __init__(
         self,
         block_size: int,
@@ -42,7 +45,6 @@ class ActivationBlockPool:
         total_memory_size: int = 1024 * 1024 * 1024,
     ):
         self.block_size = block_size
-        # 自动调整总size为block_size整数倍
         num_blocks = total_memory_size // block_size
         total_memory_size = num_blocks * block_size
         if device is None:
@@ -57,6 +59,9 @@ class ActivationBlockPool:
         self.cached_blocks = {}  # hash_key -> ElasticBlockCache
         self.memory_blocks = [MemoryBlock(i, block_size) for i in range(num_blocks)]
         self.free_block_ids = [i for i in range(num_blocks)]
+        self._logger.info(
+            f"[ActivationBlockPool] Initialized with block_size={block_size}, total_memory_size={total_memory_size}, num_blocks={num_blocks}, device={device}."
+        )
 
     def _find_free_blocks(self, num_blocks_needed: int) -> list[int]:
         if len(self.free_block_ids) < num_blocks_needed:
@@ -77,7 +82,6 @@ class ActivationBlockPool:
                 f"Not enough free blocks. Required: {num_blocks_needed}, Available: {len(self.free_block_ids)}"
             )
         used_block_lens = []
-        # 分配block并移出free_block_ids
         for i, block_id in enumerate(free_block_ids):
             memblock = self.memory_blocks[block_id]
             memblock.is_free = False
@@ -94,6 +98,9 @@ class ActivationBlockPool:
         self.cached_blocks[hash_key] = ActivationBlockCache(
             hash_key, data_location, total_len, shape=data.shape
         )
+        self._logger.info(
+            f"[ActivationBlockPool] Wrote data with hash_key='{hash_key}', total_len={total_len}, num_blocks_used={num_blocks_needed}."
+        )
 
     def read_data(self, hash_key: str) -> torch.Tensor:
         block = self.cached_blocks.get(hash_key)
@@ -108,6 +115,9 @@ class ActivationBlockPool:
                 data_pieces.append(self.large_buffer[offset : offset + length])
             data_cat = torch.cat(data_pieces)
             if hasattr(block, "shape") and block.shape is not None:
+                self._logger.info(
+                    f"[ActivationBlockPool] Read data with hash_key='{hash_key}'."
+                )
                 return data_cat.view(block.shape)
             else:
                 raise ValueError("Block shape is not defined.")
@@ -126,6 +136,9 @@ class ActivationBlockPool:
                 self.free_block_ids.append(block_id)
         self.free_block_ids = sorted(set(self.free_block_ids))
         del self.cached_blocks[hash_key]
+        self._logger.info(
+            f"[ActivationBlockPool] Freed data with hash_key='{hash_key}', size={block_cache.total_data_size}."
+        )
 
 
 class StaticActivationBlockPool:
@@ -241,7 +254,9 @@ class StaticActivationBlockPool:
                 )
             data_cat = torch.cat(data_pieces)
             if hasattr(block, "shape") and block.shape is not None:
-                StaticActivationBlockPool._logger.info(f"[StaticActivationBlockPool] Read data with hash_key='{hash_key}'.")
+                StaticActivationBlockPool._logger.info(
+                    f"[StaticActivationBlockPool] Read data with hash_key='{hash_key}'."
+                )
                 return data_cat.view(block.shape)
             else:
                 raise ValueError("Block shape is not defined.")
@@ -263,7 +278,9 @@ class StaticActivationBlockPool:
             set(StaticActivationBlockPool.free_block_ids)
         )
         del StaticActivationBlockPool.cached_blocks[hash_key]
-        StaticActivationBlockPool._logger.info(f"[StaticActivationBlockPool] Freed data with hash_key='{hash_key}', size={block_cache.total_data_size}.")
+        StaticActivationBlockPool._logger.info(
+            f"[StaticActivationBlockPool] Freed data with hash_key='{hash_key}', size={block_cache.total_data_size}."
+        )
 
     @staticmethod
     def reset_pool():
