@@ -148,7 +148,7 @@ class StaticActivationBlockPool:
     ):
         if StaticActivationBlockPool._initialized:
             raise RuntimeError(
-                "StaticActivationBlockPool has been initialized already. Cannot re-initialize."
+                "StaticActivationBlockPool has been initialized already. Re-initialize it by calling reset_pool() first."
             )
         StaticActivationBlockPool.block_size = block_size
         num_blocks = total_memory_size // block_size
@@ -252,3 +252,13 @@ class StaticActivationBlockPool:
             set(StaticActivationBlockPool.free_block_ids)
         )
         del StaticActivationBlockPool.cached_blocks[hash_key]
+
+
+    @staticmethod
+    def reset_pool():
+        StaticActivationBlockPool.block_size = None
+        StaticActivationBlockPool.large_buffer = None
+        StaticActivationBlockPool.cached_blocks = {}
+        StaticActivationBlockPool.memory_blocks = []
+        StaticActivationBlockPool.free_block_ids = []
+        StaticActivationBlockPool._initialized = False

@@ -179,6 +179,7 @@ def test_static_activation_block_pool():
     )
 
     # 测试7：写入长度为block_size整数倍
+    StaticActivationBlockPool.reset_pool()
     StaticActivationBlockPool.init_pool(
         block_size=16, total_memory_size=32, device=torch.device("cpu")
     )
@@ -188,6 +189,7 @@ def test_static_activation_block_pool():
     print_result("整数倍block写入/读取一致性", torch.equal(data3, out3))
 
     # 测试9：写入大长度（非block_size整数倍），空间足够
+    StaticActivationBlockPool.reset_pool()
     StaticActivationBlockPool.init_pool(
         block_size=128, total_memory_size=1024, device=torch.device("cpu")
     )
@@ -198,6 +200,7 @@ def test_static_activation_block_pool():
     print_result("大长度非整数倍写入/读取一致性", torch.equal(data_big, out_big))
 
     # 测试10：成功删除key后无法读取
+    StaticActivationBlockPool.reset_pool()
     StaticActivationBlockPool.init_pool(
         block_size=16, total_memory_size=32, device=torch.device("cpu")
     )
@@ -219,6 +222,7 @@ def test_static_activation_block_pool():
         print_result("删除不存在key检测", True)
 
     # 测试12：多维tensor写入/读出，形状和内容一致
+    StaticActivationBlockPool.reset_pool()
     StaticActivationBlockPool.init_pool(
         block_size=32, total_memory_size=128, device=torch.device("cpu")
     )
