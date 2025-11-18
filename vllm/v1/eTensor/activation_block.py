@@ -1,5 +1,6 @@
 import torch
-
+import logging
+import time
 
 class DataLocation:
     def __init__(
@@ -134,6 +135,7 @@ class StaticActivationBlockPool:
     memory_blocks = []
     free_block_ids = []
     _initialized = False
+    _logger = None
 
     def __new__(cls, *args, **kwargs):
         raise RuntimeError(
@@ -147,27 +149,32 @@ class StaticActivationBlockPool:
         total_memory_size: int = 1024 * 1024 * 1024,
     ):
         if StaticActivationBlockPool._initialized:
-            raise RuntimeError(
-                "StaticActivationBlockPool has been initialized already. Re-initialize it by calling reset_pool() first."
+            StaticActivationBlockPool._logger.warning(
+                "[StaticActivationBlockPool] StaticActivationBlockPool is already initialized. Re-initialization is ignored. You can re-initialize it by calling reset_pool() first."
             )
-        StaticActivationBlockPool.block_size = block_size
-        num_blocks = total_memory_size // block_size
-        total_memory_size = num_blocks * block_size
-        if device is None:
-            device = (
-                torch.device("cuda")
-                if torch.cuda.is_available()
-                else torch.device("cpu")
+            return
+        else:
+            StaticActivationBlockPool.block_size = block_size
+            num_blocks = total_memory_size // block_size
+            total_memory_size = num_blocks * block_size
+            if device is None:
+                device = (
+                    torch.device("cuda")
+                    if torch.cuda.is_available()
+                    else torch.device("cpu")
+                )
+            StaticActivationBlockPool.large_buffer = torch.empty(
+                total_memory_size, dtype=torch.float32, device=device
             )
-        StaticActivationBlockPool.large_buffer = torch.empty(
-            total_memory_size, dtype=torch.float32, device=device
-        )
-        StaticActivationBlockPool.cached_blocks = {}
-        StaticActivationBlockPool.memory_blocks = [
-            MemoryBlock(i, block_size) for i in range(num_blocks)
-        ]
-        StaticActivationBlockPool.free_block_ids = [i for i in range(num_blocks)]
-        StaticActivationBlockPool._initialized = True
+            StaticActivationBlockPool.cached_blocks = {}
+            StaticActivationBlockPool.memory_blocks = [
+                MemoryBlock(i, block_size) for i in range(num_blocks)
+            ]
+            StaticActivationBlockPool.free_block_ids = [i for i in range(num_blocks)]
+            StaticActivationBlockPool._initialized = True
+            StaticActivationBlockPool._logger = logging.getLogger(
+                f"StaticActivationBlockPool at {time.time()}"
+            )
 
     @staticmethod
     def _find_free_blocks(num_blocks_needed: int) -> list[int]:
@@ -214,6 +221,9 @@ class StaticActivationBlockPool:
         StaticActivationBlockPool.cached_blocks[hash_key] = ActivationBlockCache(
             hash_key, data_location, total_len, shape=data.shape
         )
+        StaticActivationBlockPool._logger.info(
+            f"[StaticActivationBlockPool] Wrote data with hash_key='{hash_key}', total_len={total_len}, num_blocks_used={num_blocks_needed}."
+        )
 
     @staticmethod
     def read_data(hash_key: str) -> torch.Tensor:
@@ -231,6 +241,7 @@ class StaticActivationBlockPool:
                 )
             data_cat = torch.cat(data_pieces)
             if hasattr(block, "shape") and block.shape is not None:
+                StaticActivationBlockPool._logger.info(f"[StaticActivationBlockPool] Read data with hash_key='{hash_key}'.")
                 return data_cat.view(block.shape)
             else:
                 raise ValueError("Block shape is not defined.")
@@ -252,7 +263,7 @@ class StaticActivationBlockPool:
             set(StaticActivationBlockPool.free_block_ids)
         )
         del StaticActivationBlockPool.cached_blocks[hash_key]
-
+        StaticActivationBlockPool._logger.info(f"[StaticActivationBlockPool] Freed data with hash_key='{hash_key}', size={block_cache.total_data_size}.")
 
     @staticmethod
     def reset_pool():
@@ -262,3 +273,4 @@ class StaticActivationBlockPool:
         StaticActivationBlockPool.memory_blocks = []
         StaticActivationBlockPool.free_block_ids = []
         StaticActivationBlockPool._initialized = False
+        StaticActivationBlockPool._logger = None
