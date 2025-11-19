@@ -154,3 +154,31 @@ branch speculation principles，提前主动启动异步内存分配
 由于[eLLM: Elastic Memory Management Framework for Efficient LLM Serving](https://arxiv.org/abs/2506.15155)没有开源代码，所以这里只是尝试复现这篇工作的内容，并尽量地解耦合以便拓展到其他框架（暂未实现）
 
 ---
+
+## Installation
+配置虚拟环境
+```bash
+conda remove -n vllm --all -y
+conda create -n vllm python=3.10 -y
+conda activate vllm
+conda deactivate
+```
+安装依赖，进行编译
+```bash
+# Install PyTorch with CUDA 13.0 support
+pip uninstall torch torchvision -y
+pip install numpy typing_extensions filelock sympy networkx pillow pyyaml tqdm requests urllib3 packaging
+pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+# pip show torch torchvision
+# Install xformers
+pip uninstall xformers -y
+pip3 install -U xformers --index-url https://download.pytorch.org/whl/cu130
+pip3 install --force-reinstall torchvision==0.24.0+cu130 --index-url https://download.pytorch.org/whl/cu130
+# Only change Python codes
+VLLM_USE_PRECOMPILED=1 pip install --editable . --verbose
+# Change Python/C++/CUDA codes, need to recompile
+pip install --editable . --verbose
+```
+
+
+
